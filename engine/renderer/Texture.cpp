@@ -1,4 +1,8 @@
 #include "Texture.h"
+#include "core/Log.h"
+
+// stb_image 实现 (整个引擎只在此处定义一次)
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <iostream>
 #include <vector>
@@ -71,6 +75,7 @@ Texture2D::Texture2D(const Spec& spec)
 }
 
 Texture2D::Texture2D(const std::string& path)
+    : m_RendererID(0), m_InternalFormat(GL_RGBA), m_DataFormat(GL_RGBA)
 {
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
@@ -78,7 +83,7 @@ Texture2D::Texture2D(const std::string& path)
 
     if (!data)
     {
-        std::cerr << "[Texture2D] Failed to load: " << path << std::endl;
+        CORE_ERROR("[Texture2D] Failed to load: ", path);
         return;
     }
 
@@ -96,6 +101,18 @@ Texture2D::Texture2D(const std::string& path)
         m_Spec.ImageFormat  = Format::RGB;
         m_InternalFormat = GL_RGB;
         m_DataFormat     = GL_RGB;
+    }
+    else if (channels == 2)
+    {
+        m_Spec.ImageFormat  = Format::RGBA;
+        m_InternalFormat = GL_RG;
+        m_DataFormat     = GL_RG;
+    }
+    else if (channels == 1)
+    {
+        m_Spec.ImageFormat  = Format::RED;
+        m_InternalFormat = GL_RED;
+        m_DataFormat     = GL_RED;
     }
 
     glGenTextures(1, &m_RendererID);
@@ -116,7 +133,8 @@ Texture2D::Texture2D(const std::string& path)
 
 Texture2D::~Texture2D()
 {
-    glDeleteTextures(1, &m_RendererID);
+    if (m_RendererID)
+        glDeleteTextures(1, &m_RendererID);
 }
 
 void Texture2D::Bind(uint32_t slot) const
@@ -152,12 +170,14 @@ std::shared_ptr<Texture2D> Texture2D::Create(const std::string& path)
 
 // ===== TextureCube =====
 TextureCube::TextureCube(const std::vector<std::string>& faces)
+    : m_RendererID(0), m_Width(0), m_Height(0)
 {
     glGenTextures(1, &m_RendererID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
 
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(false);
+    int loadedFaces = 0;
 
     for (unsigned int i = 0; i < faces.size(); i++)
     {
@@ -167,8 +187,17 @@ TextureCube::TextureCube(const std::vector<std::string>& faces)
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
                          width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
             stbi_image_free(data);
+            loadedFaces++;
+            if (i == 0) { m_Width = width; m_Height = height; }
+        }
+        else
+        {
+            CORE_WARN("[TextureCube] Failed to load face ", i, ": ", faces[i]);
         }
     }
+
+    if (loadedFaces < (int)faces.size())
+        CORE_ERROR("[TextureCube] Only ", loadedFaces, "/", faces.size(), " faces loaded successfully");
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -179,7 +208,8 @@ TextureCube::TextureCube(const std::vector<std::string>& faces)
 
 TextureCube::~TextureCube()
 {
-    glDeleteTextures(1, &m_RendererID);
+    if (m_RendererID)
+        glDeleteTextures(1, &m_RendererID);
 }
 
 void TextureCube::Bind(uint32_t slot) const

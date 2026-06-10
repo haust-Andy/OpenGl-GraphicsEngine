@@ -53,7 +53,7 @@ private:
 
     uint32_t CompileShader(GLenum type, const std::string& source);
     std::string ReadFile(const std::string& path);
-    void CheckCompileErrors(uint32_t shader, const std::string& type);
+    bool CheckCompileErrors(uint32_t shader, const std::string& type);
 
     uint32_t m_RendererID = 0;
     std::string m_Name;

@@ -70,8 +70,8 @@ public:
 
 private:
     Spec m_Spec;
-    uint32_t m_RendererID;
-    GLenum m_InternalFormat, m_DataFormat;
+    uint32_t m_RendererID = 0;
+    GLenum m_InternalFormat = GL_RGBA, m_DataFormat = GL_RGBA;
 };
 
 // CubeMap 纹理
@@ -84,12 +84,13 @@ public:
     void Bind(uint32_t slot = 0) const override;
     void Unbind() const override;
 
-    uint32_t GetWidth() const override  { return 0; }
-    uint32_t GetHeight() const override { return 0; }
+    uint32_t GetWidth() const override  { return m_Width; }
+    uint32_t GetHeight() const override { return m_Height; }
     uint32_t GetRendererID() const override { return m_RendererID; }
     const Spec& GetSpecification() const override { return m_Spec; }
 
 private:
     Spec m_Spec;
-    uint32_t m_RendererID;
+    uint32_t m_RendererID = 0;
+    uint32_t m_Width = 0, m_Height = 0;
 };

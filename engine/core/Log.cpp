@@ -46,7 +46,11 @@ void Log::WriteLog(LogLevel level, const char* file, int line, const std::string
                     now.time_since_epoch()) % 1000;
 
     std::tm tm_buf;
+#ifdef _WIN32
     localtime_s(&tm_buf, &time);
+#else
+    localtime_r(&time, &tm_buf);
+#endif
 
     char timeBuf[32];
     std::strftime(timeBuf, sizeof(timeBuf), "%H:%M:%S", &tm_buf);
@@ -54,7 +58,7 @@ void Log::WriteLog(LogLevel level, const char* file, int line, const std::string
     // 输出格式: [HH:MM:SS.mmm] [LEVEL] file:line: message
     FILE* out = (level >= LogLevel::Error) ? stderr : stdout;
 
-    fprintf(out, "%s[%s.%03lld]%s %s%-7s%s %s%s:%d%s: %s\n",
+    fprintf(out, "%s[%s.%03ld]%s %s%-7s%s %s%s:%d%s: %s\n",
             "\033[90m",                              // 灰色时间戳开始
             timeBuf, ms.count(),
             "\033[0m",                               // 重置
