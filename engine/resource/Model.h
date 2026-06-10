@@ -14,7 +14,7 @@ struct SubMesh
 {
     std::shared_ptr<VertexArray> VAO;
     uint32_t IndexCount = 0;
-    std::shared_ptr<Material> Material;
+    std::shared_ptr<class Material> MaterialPtr;
     glm::mat4 Transform = glm::mat4(1.0f);  // 相对 Model 的局部变换
 };
 

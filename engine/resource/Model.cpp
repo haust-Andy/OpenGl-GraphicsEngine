@@ -204,7 +204,7 @@ SubMesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene,
     SubMesh subMesh;
     subMesh.VAO = vao;
     subMesh.IndexCount = (uint32_t)indices.size();
-    subMesh.Material = material;
+    subMesh.MaterialPtr = material;
     return subMesh;
 }
 
