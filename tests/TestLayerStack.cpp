@@ -2,6 +2,7 @@
 #include "engine/core/Layer.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 // =====================================
 //  Test: Layer & LayerStack
@@ -37,131 +38,140 @@ TEST(Layer, DefaultName_IsLayer)
 TEST(LayerStack, EmptyStack)
 {
     LayerStack stack;
-    CHECK_EQ(std::distance(stack.begin(), stack.end()), 0);
+    int count = 0;
+    for (auto it = stack.begin(); it != stack.end(); ++it)
+        count++;
+    CHECK_EQ(count, 0);
 }
 
 TEST(LayerStack, PushLayer_CallsOnAttach)
 {
     LayerStack stack;
-    auto* layer = new MockLayer("L1");
+    auto layer = std::make_unique<MockLayer>("L1");
+    MockLayer* rawPtr = layer.get();
 
-    stack.PushLayer(layer);
-    CHECK_TRUE(layer->attached);
-    CHECK_FALSE(layer->detached);
-    // ~LayerStack 负责 delete
+    stack.PushLayer(std::move(layer));
+    CHECK_TRUE(rawPtr->attached);
+    CHECK_FALSE(rawPtr->detached);
 }
 
 TEST(LayerStack, PopLayer_CallsOnDetach)
 {
     LayerStack stack;
-    auto* layer = new MockLayer("L1");
+    auto layer = std::make_unique<MockLayer>("L1");
+    MockLayer* rawPtr = layer.get();
 
-    stack.PushLayer(layer);
-    stack.PopLayer(layer);
+    stack.PushLayer(std::move(layer));
+    stack.PopLayer(rawPtr);
 
-    CHECK_TRUE(layer->detached);
-    delete layer;  // PopLayer 已从 stack 移除，安全 delete
+    CHECK_TRUE(rawPtr->detached);
 }
 
 TEST(LayerStack, PushMultipleLayers_Order)
 {
     LayerStack stack;
-    auto* l1 = new MockLayer("L1");
-    auto* l2 = new MockLayer("L2");
+    auto l1 = std::make_unique<MockLayer>("L1");
+    auto l2 = std::make_unique<MockLayer>("L2");
+    MockLayer* rawL1 = l1.get();
+    MockLayer* rawL2 = l2.get();
 
-    stack.PushLayer(l1);
-    stack.PushLayer(l2);
+    stack.PushLayer(std::move(l1));
+    stack.PushLayer(std::move(l2));
 
     // 正向迭代：先入先出（L1 → L2）
     auto it = stack.begin();
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == l1); it++;
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == l2);
-    // ~LayerStack 负责 delete
+    CHECK_TRUE(*it == rawL1); ++it;
+    CHECK_TRUE(*it == rawL2);
 }
 
 TEST(LayerStack, PushLayerAndOverlay_Order)
 {
     LayerStack stack;
-    auto* layer   = new MockLayer("Layer");
-    auto* overlay = new MockLayer("Overlay");
+    auto layer   = std::make_unique<MockLayer>("Layer");
+    auto overlay = std::make_unique<MockLayer>("Overlay");
+    MockLayer* rawLayer = layer.get();
+    MockLayer* rawOverlay = overlay.get();
 
-    stack.PushLayer(layer);
-    stack.PushOverlay(overlay);
+    stack.PushLayer(std::move(layer));
+    stack.PushOverlay(std::move(overlay));
 
     // Layer 在前，Overlay 在后
     auto it = stack.begin();
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == layer);  it++;
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == overlay);
-    // ~LayerStack 负责 delete
+    CHECK_TRUE(*it == rawLayer);  ++it;
+    CHECK_TRUE(*it == rawOverlay);
 }
 
 TEST(LayerStack, PushOverlayBeforeLayer_StillAppended)
 {
     LayerStack stack;
-    auto* overlay = new MockLayer("Overlay");
-    auto* layer   = new MockLayer("Layer");
+    auto overlay = std::make_unique<MockLayer>("Overlay");
+    auto layer   = std::make_unique<MockLayer>("Layer");
+    MockLayer* rawOverlay = overlay.get();
+    MockLayer* rawLayer = layer.get();
 
-    stack.PushOverlay(overlay);  // 先 push overlay
-    stack.PushLayer(layer);       // 再 push layer
+    stack.PushOverlay(std::move(overlay));  // 先 push overlay
+    stack.PushLayer(std::move(layer));       // 再 push layer
 
     // Layer 应在 Overlay 之前
     auto it = stack.begin();
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == layer);   it++;
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == overlay);
-    // ~LayerStack 负责 delete
+    CHECK_TRUE(*it == rawLayer);   ++it;
+    CHECK_TRUE(*it == rawOverlay);
 }
 
 TEST(LayerStack, PopLayer_ShiftsInsertIndex)
 {
     LayerStack stack;
-    auto* l1 = new MockLayer("L1");
-    auto* l2 = new MockLayer("L2");
-    auto* l3 = new MockLayer("L3");
+    auto l1 = std::make_unique<MockLayer>("L1");
+    auto l2 = std::make_unique<MockLayer>("L2");
+    auto l3 = std::make_unique<MockLayer>("L3");
+    MockLayer* rawL1 = l1.get();
+    MockLayer* rawL2 = l2.get();
+    MockLayer* rawL3 = l3.get();
 
-    stack.PushLayer(l1);
-    stack.PushLayer(l2);
-    stack.PushLayer(l3);
+    stack.PushLayer(std::move(l1));
+    stack.PushLayer(std::move(l2));
+    stack.PushLayer(std::move(l3));
 
     // 删除中间的 l2
-    stack.PopLayer(l2);
-    CHECK_TRUE(l2->detached);
-    delete l2;  // PopLayer 已从 stack 移除
+    stack.PopLayer(rawL2);
+    CHECK_TRUE(rawL2->detached);
 
     // l1 和 l3 仍在 stack 中
     auto it = stack.begin();
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == l1); it++;
-    CHECK_TRUE(static_cast<MockLayer*>(*it) == l3);
-    // ~LayerStack 负责 delete l1, l3
+    CHECK_TRUE(*it == rawL1); ++it;
+    CHECK_TRUE(*it == rawL3);
 }
 
 TEST(LayerStack, ReverseIteration)
 {
     LayerStack stack;
-    auto* l1 = new MockLayer("L1");
-    auto* l2 = new MockLayer("L2");
-    auto* l3 = new MockLayer("L3");
+    auto l1 = std::make_unique<MockLayer>("L1");
+    auto l2 = std::make_unique<MockLayer>("L2");
+    auto l3 = std::make_unique<MockLayer>("L3");
+    MockLayer* rawL1 = l1.get();
+    MockLayer* rawL2 = l2.get();
+    MockLayer* rawL3 = l3.get();
 
-    stack.PushLayer(l1);
-    stack.PushLayer(l2);
-    stack.PushLayer(l3);
+    stack.PushLayer(std::move(l1));
+    stack.PushLayer(std::move(l2));
+    stack.PushLayer(std::move(l3));
 
     // 反向迭代：从最后一个到第一个
     auto rit = stack.rbegin();
-    CHECK_TRUE(static_cast<MockLayer*>(*rit) == l3); rit++;
-    CHECK_TRUE(static_cast<MockLayer*>(*rit) == l2); rit++;
-    CHECK_TRUE(static_cast<MockLayer*>(*rit) == l1);
-    // ~LayerStack 负责 delete
+    CHECK_TRUE(*rit == rawL3); ++rit;
+    CHECK_TRUE(*rit == rawL2); ++rit;
+    CHECK_TRUE(*rit == rawL1);
 }
 
 TEST(LayerStack, ConstIteration)
 {
     LayerStack stack;
-    auto* layer = new MockLayer("ConstTest");
-    stack.PushLayer(layer);
+    auto layer = std::make_unique<MockLayer>("ConstTest");
+    MockLayer* rawLayer = layer.get();
+    stack.PushLayer(std::move(layer));
 
     const LayerStack& constStack = stack;
     auto it = constStack.begin();
     CHECK_TRUE(it != constStack.end());
-    CHECK_TRUE(*it == layer);
-    // ~LayerStack 负责 delete
+    CHECK_TRUE(*it == rawLayer);
 }

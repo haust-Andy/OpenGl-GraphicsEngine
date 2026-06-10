@@ -32,9 +32,6 @@ public:
     uint32_t BlurIterations = 5;
 
 private:
-    void HorizontalBlur();
-    void VerticalBlur();
-
     std::shared_ptr<Shader> m_BrightnessShader;
     std::shared_ptr<Shader> m_BlurShader;
     std::shared_ptr<Shader> m_CombineShader;
@@ -59,7 +56,7 @@ private:
     std::shared_ptr<Shader> m_Shader;
 };
 
-// 后处理管线管理器
+// 后处理管线管理器 (使用双缓冲避免同时读写同一 FBO)
 class PostProcessPipeline
 {
 public:
@@ -70,12 +67,14 @@ public:
 
     void OnResize(uint32_t width, uint32_t height);
 
-    std::shared_ptr<Framebuffer> GetFinalBuffer() const { return m_OutputFBO; }
+    std::shared_ptr<Framebuffer> GetFinalBuffer() const { return m_FinalIsFBO1 ? m_OutputFBO : m_OutputFBO2; }
 
     BloomPass& GetBloom() { return *m_BloomPass; }
 
 private:
     std::shared_ptr<Framebuffer> m_OutputFBO;
+    std::shared_ptr<Framebuffer> m_OutputFBO2;
+    bool m_FinalIsFBO1 = true;
     std::shared_ptr<BloomPass>   m_BloomPass;
     std::shared_ptr<ToneMappingPass> m_ToneMappingPass;
     std::vector<std::shared_ptr<PostProcessPass>> m_Passes;

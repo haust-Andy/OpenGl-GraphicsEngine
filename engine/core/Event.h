@@ -15,7 +15,8 @@ enum class EventType
     MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 };
 
-#define BIT(x) (1 << x)
+// L-01: 使用 constexpr 替代预处理器宏
+constexpr int BIT(int x) { return 1 << x; }
 
 enum EventCategory
 {

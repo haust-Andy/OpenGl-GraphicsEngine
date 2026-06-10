@@ -1,21 +1,26 @@
 #include "Renderer.h"
-#include <iostream>
+#include "core/Log.h"
 
 Renderer::SceneData Renderer::s_SceneData;
 RenderStats Renderer::s_Stats;
 std::unique_ptr<RendererAPI> Renderer::s_RendererAPI;
+std::shared_ptr<UniformBuffer> Renderer::s_CameraUBO;
 
 void Renderer::Init()
 {
     s_RendererAPI = RendererAPI::Create();
     s_RendererAPI->Init();
 
-    std::cout << "[Renderer] Initialized (OpenGL " << glGetString(GL_VERSION) << ")" << std::endl;
-    std::cout << "[Renderer] GPU: " << glGetString(GL_RENDERER) << std::endl;
+    // 创建 Camera UBO (binding point = 0)
+    s_CameraUBO = UniformBuffer::Create(sizeof(CameraUBOData), 0);
+
+    CORE_INFO("[Renderer] Initialized (OpenGL ", glGetString(GL_VERSION), ")");
+    CORE_INFO("[Renderer] GPU: ", glGetString(GL_RENDERER));
 }
 
 void Renderer::Shutdown()
 {
+    s_CameraUBO.reset();
     s_RendererAPI.reset();
 }
 
@@ -35,6 +40,17 @@ void Renderer::BeginScene(const Camera& camera, const glm::mat4& view, const glm
     s_SceneData.ProjectionMatrix = projection;
     s_SceneData.ViewProjectionMatrix = projection * view;
     s_SceneData.CameraPosition   = camera.Position;
+
+    // 更新 Camera UBO
+    if (s_CameraUBO)
+    {
+        CameraUBOData camData;
+        camData.View           = view;
+        camData.Projection     = projection;
+        camData.ViewProjection = s_SceneData.ViewProjectionMatrix;
+        camData.CameraPosition = glm::vec4(camera.Position, 1.0f);
+        s_CameraUBO->SetData(&camData, sizeof(CameraUBOData));
+    }
 }
 
 void Renderer::EndScene()
@@ -111,6 +127,8 @@ std::shared_ptr<VertexArray> Renderer::GetFullscreenQuadVAO()
         s_QuadVAO->SetIndexBuffer(ibo);
 
         // 设置属性布局: position(2) + texcoord(2)
+        // 注意: 此处仍需直接设置，因为 VertexArray 的 AddVertexBuffer 接口需要增强
+        // TODO(code-review): 在 VertexArray 中提供标准化的全屏四边形布局定义方法
         glBindVertexArray(s_QuadVAO->GetRendererID());
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
@@ -131,6 +149,11 @@ void Renderer::SetClearColor(const glm::vec4& color)
 {
     if (!s_RendererAPI) return;
     s_RendererAPI->SetClearColor(color);
+}
+
+void Renderer::Clear()
+{
+    if (!s_RendererAPI) return;
     s_RendererAPI->Clear();
 }
 

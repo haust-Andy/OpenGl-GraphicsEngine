@@ -1,5 +1,5 @@
 #include "Framebuffer.h"
-#include <iostream>
+#include "core/Log.h"
 
 Framebuffer::Framebuffer(const FramebufferSpec& spec)
     : m_Spec(spec)
@@ -9,9 +9,9 @@ Framebuffer::Framebuffer(const FramebufferSpec& spec)
 
 Framebuffer::~Framebuffer()
 {
-    glDeleteFramebuffers(1, &m_RendererID);
-    glDeleteTextures(1, &m_ColorAttachment);
-    glDeleteTextures(1, &m_DepthAttachment);
+    if (m_ColorAttachment)  glDeleteTextures(1, &m_ColorAttachment);
+    if (m_DepthAttachment)  glDeleteTextures(1, &m_DepthAttachment);
+    if (m_RendererID)       glDeleteFramebuffers(1, &m_RendererID);
 }
 
 void Framebuffer::Invalidate()
@@ -26,12 +26,15 @@ void Framebuffer::Invalidate()
     glGenFramebuffers(1, &m_RendererID);
     glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
 
-    // 颜色附件
+    // 颜色附件 - 根据 HDR 标志选择格式
+    GLenum colorInternalFormat = m_Spec.HDR ? GL_RGBA16F : GL_RGBA8;
+    GLenum colorDataFormat     = GL_RGBA;
+
     glGenTextures(1, &m_ColorAttachment);
     glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+    glTexImage2D(GL_TEXTURE_2D, 0, colorInternalFormat,
                  m_Spec.Width, m_Spec.Height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                 colorDataFormat, m_Spec.HDR ? GL_FLOAT : GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -53,8 +56,9 @@ void Framebuffer::Invalidate()
                             GL_TEXTURE_2D, m_DepthAttachment, 0);
 
     // 检查完整性
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cerr << "[Framebuffer] Framebuffer is incomplete!" << std::endl;
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+        CORE_ERROR("[Framebuffer] Framebuffer is incomplete! Status: 0x", status);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

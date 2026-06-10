@@ -2,6 +2,7 @@
 
 // ===== VertexBuffer =====
 VertexBuffer::VertexBuffer(float* vertices, uint32_t size)
+    : m_RendererID(0)
 {
     glGenBuffers(1, &m_RendererID);
     glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -9,6 +10,7 @@ VertexBuffer::VertexBuffer(float* vertices, uint32_t size)
 }
 
 VertexBuffer::VertexBuffer(uint32_t size)
+    : m_RendererID(0)
 {
     glGenBuffers(1, &m_RendererID);
     glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -17,7 +19,8 @@ VertexBuffer::VertexBuffer(uint32_t size)
 
 VertexBuffer::~VertexBuffer()
 {
-    glDeleteBuffers(1, &m_RendererID);
+    if (m_RendererID)
+        glDeleteBuffers(1, &m_RendererID);
 }
 
 void VertexBuffer::Bind() const
@@ -38,7 +41,7 @@ void VertexBuffer::SetData(const void* data, uint32_t size)
 
 // ===== IndexBuffer =====
 IndexBuffer::IndexBuffer(uint32_t* indices, uint32_t count)
-    : m_Count(count)
+    : m_RendererID(0), m_Count(count)
 {
     glGenBuffers(1, &m_RendererID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
@@ -47,7 +50,8 @@ IndexBuffer::IndexBuffer(uint32_t* indices, uint32_t count)
 
 IndexBuffer::~IndexBuffer()
 {
-    glDeleteBuffers(1, &m_RendererID);
+    if (m_RendererID)
+        glDeleteBuffers(1, &m_RendererID);
 }
 
 void IndexBuffer::Bind() const

@@ -8,8 +8,10 @@
 #include "Timestep.h"
 #include <functional>
 #include <string>
+#include <memory>
 
-#define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
+// M-02: 使用 lambda 替代 std::bind
+#define BIND_EVENT_FN(fn) [this](auto& _e) { return fn(_e); }
 
 // Application - 引擎应用基类
 // 用户游戏继承此类并实现自己的逻辑
@@ -22,8 +24,8 @@ public:
     void Run();
     void Close();
 
-    void PushLayer(Layer* layer);
-    void PushOverlay(Layer* overlay);
+    void PushLayer(std::unique_ptr<Layer> layer);
+    void PushOverlay(std::unique_ptr<Layer> overlay);
 
     Window& GetWindow() { return *m_Window; }
     static Application& Get() { return *s_Instance; }

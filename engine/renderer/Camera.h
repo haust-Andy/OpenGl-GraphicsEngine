@@ -45,6 +45,10 @@ public:
     float NearPlane        = 0.1f;
     float FarPlane         = 100.0f;
 
+    // 视口尺寸（用于计算正确的宽高比）
+    uint32_t ViewportWidth  = 1280;
+    uint32_t ViewportHeight = 720;
+
 private:
     void UpdateCameraVectors();
 };

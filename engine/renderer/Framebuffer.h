@@ -13,6 +13,7 @@ struct FramebufferSpec
     uint32_t Samples = 1;  // MSAA 采样数
 
     bool SwapChainTarget = false;  // 是否直接渲染到屏幕
+    bool HDR = false;              // 是否使用浮点颜色格式 (GL_RGBA16F)
 };
 
 class Framebuffer
@@ -21,6 +22,9 @@ public:
     Framebuffer(const FramebufferSpec& spec);
     ~Framebuffer();
 
+    Framebuffer(const Framebuffer&) = delete;
+    Framebuffer& operator=(const Framebuffer&) = delete;
+
     void Bind();
     void Unbind();
     void Resize(uint32_t width, uint32_t height);
@@ -28,6 +32,7 @@ public:
     void BindColorAttachment(uint32_t slot = 0) const;
     void BindDepthAttachment(uint32_t slot = 0) const;
 
+    uint32_t GetRendererID()       const { return m_RendererID; }
     uint32_t GetColorAttachmentID() const { return m_ColorAttachment; }
     uint32_t GetDepthAttachmentID() const { return m_DepthAttachment; }
     const FramebufferSpec& GetSpec() const { return m_Spec; }

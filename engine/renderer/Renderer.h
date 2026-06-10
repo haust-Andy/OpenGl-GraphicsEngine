@@ -13,10 +13,20 @@
 #include "VertexArray.h"
 #include "Texture.h"
 #include "Framebuffer.h"
+#include "UniformBuffer.h"
 #include "RenderCommand.h"
 #include "RendererAPI.h"
 
 class LightEnvironment;
+
+// ===== Camera UBO 布局 (std140, 向 shader 传递相机矩阵) =====
+struct CameraUBOData
+{
+    glm::mat4 View;
+    glm::mat4 Projection;
+    glm::mat4 ViewProjection;
+    glm::vec4 CameraPosition;  // .xyz = pos, .w = unused
+};
 
 // 渲染器 - 核心渲染管理类
 class Renderer
@@ -54,10 +64,14 @@ public:
 
     // 渲染配置
     static void SetClearColor(const glm::vec4& color);
+    static void Clear();
     static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
     static void SetDepthTest(bool enabled);
     static void SetCullFace(bool enabled);
     static void SetWireframe(bool enabled);
+
+    // UBO 接口
+    static std::shared_ptr<UniformBuffer> GetCameraUBO() { return s_CameraUBO; }
 
 private:
     static void Flush();
@@ -73,4 +87,5 @@ private:
     static SceneData s_SceneData;
     static RenderStats s_Stats;
     static std::unique_ptr<RendererAPI> s_RendererAPI;
+    static std::shared_ptr<UniformBuffer> s_CameraUBO;
 };

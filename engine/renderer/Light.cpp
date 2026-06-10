@@ -49,4 +49,19 @@ void LightEnvironment::BindToShader(const std::shared_ptr<Shader>& shader) const
         shader->SetFloat(prefix + ".Linear",    pl.Linear);
         shader->SetFloat(prefix + ".Quadratic", pl.Quadratic);
     }
+
+    // 聚光灯
+    shader->SetInt("u_SpotLightCount", (int)m_SpotLights.size());
+    for (size_t i = 0; i < m_SpotLights.size(); ++i)
+    {
+        std::string prefix = "u_SpotLights[" + std::to_string(i) + "]";
+        auto& sl = m_SpotLights[i];
+        shader->SetVec3(prefix + ".Position",    sl.Position);
+        shader->SetVec3(prefix + ".Direction",   sl.Direction);
+        shader->SetVec3(prefix + ".Color",       sl.Color);
+        shader->SetFloat(prefix + ".Intensity",   sl.Intensity);
+        shader->SetFloat(prefix + ".Range",       sl.Range);
+        shader->SetFloat(prefix + ".InnerCutOff", sl.InnerCutOff);
+        shader->SetFloat(prefix + ".OuterCutOff", sl.OuterCutOff);
+    }
 }

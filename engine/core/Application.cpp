@@ -1,10 +1,10 @@
 #include "Application.h"
 #include <cstring>
-#include <iostream>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "renderer/Renderer.h"
 
 Application* Application::s_Instance = nullptr;
 
@@ -53,11 +53,9 @@ void Application::Run()
 
         if (!m_Minimized)
         {
-            // 先清默认帧缓冲（3D 渲染到 FBO 后，默认 FB 是上一帧的残留内容）
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glViewport(0, 0, m_Window->GetWidth(), m_Window->GetHeight());
-            glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            // M-18: 清屏操作委托给 Renderer，不再在 Application 中直接调用 OpenGL API
+            Renderer::SetClearColor({ 0.05f, 0.05f, 0.08f, 1.0f });
+            Renderer::Clear();
 
             for (Layer* layer : m_LayerStack)
                 layer->OnUpdate(ts);
@@ -85,16 +83,16 @@ void Application::Close()
     m_Running = false;
 }
 
-void Application::PushLayer(Layer* layer)
+void Application::PushLayer(std::unique_ptr<Layer> layer)
 {
     CORE_INFO("Pushing layer: ", layer->GetName());
-    m_LayerStack.PushLayer(layer);
+    m_LayerStack.PushLayer(std::move(layer));
 }
 
-void Application::PushOverlay(Layer* overlay)
+void Application::PushOverlay(std::unique_ptr<Layer> overlay)
 {
     CORE_INFO("Pushing overlay: ", overlay->GetName());
-    m_LayerStack.PushOverlay(overlay);
+    m_LayerStack.PushOverlay(std::move(overlay));
 }
 
 void Application::OnEvent(Event& e)

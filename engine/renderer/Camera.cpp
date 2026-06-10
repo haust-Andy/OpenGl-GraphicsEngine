@@ -26,8 +26,8 @@ void Camera::ProcessKeyboard(CameraMovement direction, float deltaTime)
     case BACKWARD:   Position -= Front * velocity; break;
     case LEFT:       Position -= Right * velocity; break;
     case RIGHT:      Position += Right * velocity; break;
-    case UP_WORLD:   Position += Up * velocity;    break;
-    case DOWN_WORLD: Position -= Up * velocity;    break;
+    case UP_WORLD:   Position += WorldUp * velocity; break;
+    case DOWN_WORLD: Position -= WorldUp * velocity; break;
     }
 }
 

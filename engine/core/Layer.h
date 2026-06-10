@@ -5,6 +5,7 @@
 #include "Timestep.h"
 #include <string>
 #include <vector>
+#include <memory>
 #include <algorithm>
 
 // 引擎分层架构 - 每一层代表一个独立的功能模块
@@ -30,26 +31,80 @@ protected:
 
 // LayerStack - 管理 Layer 的栈结构
 // 后加入的 Layer 先处理事件、后渲染 (Overlay 模式)
+// 使用 unique_ptr 明确所有权，防止 double-free
 class LayerStack
 {
 public:
     LayerStack() = default;
     ~LayerStack();
 
-    void PushLayer(Layer* layer);
-    void PushOverlay(Layer* overlay);
+    void PushLayer(std::unique_ptr<Layer> layer);
+    void PushOverlay(std::unique_ptr<Layer> overlay);
     void PopLayer(Layer* layer);
     void PopOverlay(Layer* overlay);
 
-    std::vector<Layer*>::iterator begin() { return m_Layers.begin(); }
-    std::vector<Layer*>::iterator end()   { return m_Layers.end(); }
-    std::vector<Layer*>::reverse_iterator rbegin() { return m_Layers.rbegin(); }
-    std::vector<Layer*>::reverse_iterator rend()   { return m_Layers.rend(); }
+    // 迭代器支持 (返回裸指针供外部使用，不转移所有权)
+    // 注意: 外部不得 delete 返回的指针
+    class Iterator
+    {
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type = Layer*;
+        using difference_type = std::ptrdiff_t;
+        using pointer = Layer**;
+        using reference = Layer*&;
 
-    std::vector<Layer*>::const_iterator begin() const { return m_Layers.begin(); }
-    std::vector<Layer*>::const_iterator end()   const { return m_Layers.end(); }
+        Iterator(std::vector<std::unique_ptr<Layer>>::iterator it) : m_It(it) {}
+        Layer* operator*() { return m_It->get(); }
+        Iterator& operator++() { ++m_It; return *this; }
+        Iterator operator++(int) { Iterator tmp = *this; ++m_It; return tmp; }
+        Iterator& operator--() { --m_It; return *this; }
+        bool operator!=(const Iterator& other) const { return m_It != other.m_It; }
+        bool operator==(const Iterator& other) const { return m_It == other.m_It; }
+    private:
+        std::vector<std::unique_ptr<Layer>>::iterator m_It;
+    };
+
+    class ConstIterator
+    {
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type = const Layer*;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const Layer**;
+        using reference = const Layer*&;
+
+        ConstIterator(std::vector<std::unique_ptr<Layer>>::const_iterator it) : m_It(it) {}
+        const Layer* operator*() const { return m_It->get(); }
+        ConstIterator& operator++() { ++m_It; return *this; }
+        ConstIterator operator++(int) { ConstIterator tmp = *this; ++m_It; return tmp; }
+        ConstIterator& operator--() { --m_It; return *this; }
+        bool operator!=(const ConstIterator& other) const { return m_It != other.m_It; }
+        bool operator==(const ConstIterator& other) const { return m_It == other.m_It; }
+    private:
+        std::vector<std::unique_ptr<Layer>>::const_iterator m_It;
+    };
+
+    class ReverseIterator
+    {
+    public:
+        ReverseIterator(std::vector<std::unique_ptr<Layer>>::reverse_iterator it) : m_It(it) {}
+        Layer* operator*() { return m_It->get(); }
+        ReverseIterator& operator++() { ++m_It; return *this; }
+        ReverseIterator operator++(int) { ReverseIterator tmp = *this; ++m_It; return tmp; }
+        bool operator!=(const ReverseIterator& other) const { return m_It != other.m_It; }
+    private:
+        std::vector<std::unique_ptr<Layer>>::reverse_iterator m_It;
+    };
+
+    Iterator begin() { return Iterator(m_Layers.begin()); }
+    Iterator end()   { return Iterator(m_Layers.end()); }
+    ConstIterator begin() const { return ConstIterator(m_Layers.begin()); }
+    ConstIterator end() const   { return ConstIterator(m_Layers.end()); }
+    ReverseIterator rbegin() { return ReverseIterator(m_Layers.rbegin()); }
+    ReverseIterator rend()   { return ReverseIterator(m_Layers.rend()); }
 
 private:
-    std::vector<Layer*> m_Layers;
+    std::vector<std::unique_ptr<Layer>> m_Layers;
     unsigned int m_LayerInsertIndex = 0;   // 普通 Layer 插入位置
 };

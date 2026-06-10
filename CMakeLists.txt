@@ -52,6 +52,10 @@ file(GLOB_RECURSE ENGINE_SOURCES
     "engine/scene/*.cpp"
     "engine/postprocess/*.cpp"
     "engine/editor/*.cpp"
+    "engine/physics/*.cpp"
+    "engine/particle/*.cpp"
+    "engine/audio/*.cpp"
+    "engine/ui/*.cpp"
 )
 
 # ===== 引擎头文件 =====
@@ -62,6 +66,10 @@ file(GLOB_RECURSE ENGINE_HEADERS
     "engine/scene/*.h"
     "engine/postprocess/*.h"
     "engine/editor/*.h"
+    "engine/physics/*.h"
+    "engine/particle/*.h"
+    "engine/audio/*.h"
+    "engine/ui/*.h"
 )
 
 # ===== 引擎静态库 =====
