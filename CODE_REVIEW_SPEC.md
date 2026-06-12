@@ -1,8 +1,8 @@
 # Code Review 规范文档
 
 > **项目**: OpenGl-GraphicsEngine  
-> **版本**: v1.0  
-> **生效日期**: 2026-06-10  
+> **版本**: v2.1  
+> **生效日期**: 2026-06-12  
 > **适用范围**: 所有 C++/OpenGL 引擎代码提交
 
 ---
@@ -95,8 +95,12 @@
 
 | 规则 | 说明 |
 |------|------|
-| 禁止平台专有 API | 不得使用 `strcpy_s`、`sprintf_s` 等 MSVC 专有函数 |
+| 禁止平台专有 API | 不得使用 `strcpy_s`、`sprintf_s`、`localtime_s` 等 MSVC 专有函数 |
 | 替代方案 | `strncpy`、`snprintf`、`std::string::copy`、C++ 标准库 |
+| 条件编译 | 使用 `#ifdef _WIN32` 条件选择平台实现 (如 `localtime_s` vs `localtime_r`) |
+| 格式化字符串 | `long` 类型在 Linux 64 位下为 64 位，使用 `%ld` 而非 `%lld`；或使用 `int64_t` + `PRId64` |
+| 名称遮蔽 | 避免成员变量与类同名 (如 `SubMesh::Material` 与 `Material` 类冲突)，GCC 会报错 |
+| GLFW 回调链 | ImGui 的 `ImGui_ImplGlfw_InitForOpenGL(window, true)` 会消费鼠标事件，相机输入应使用轮询而非事件回调 |
 
 ### 4.4 函数职责
 
@@ -144,12 +148,16 @@
 - [ ] FBO 颜色格式正确（场景用 RGBA16F，输出用 RGBA8）
 - [ ] GLSL 代码无类型隐式截断
 - [ ] 后处理 Pass 保存/恢复 GL 状态
+- [ ] 无平台专有 API (strcpy_s / localtime_s 等)
+- [ ] 无成员变量与类同名 (名称遮蔽)
 
 ### P1 检查
 - [ ] 日志使用 CORE_* 宏，无 cout/cerr
 - [ ] 无平台专有 API
 - [ ] 函数职责单一
 - [ ] 投影矩阵宽高比动态获取
+- [ ] 相机输入不依赖 ImGui 可能消费的 GLFW 事件回调
+- [ ] 格式化字符串类型匹配 (%ld vs %lld)
 
 ### P2 检查
 - [ ] 渲染循环内无字符串拼接
@@ -164,8 +172,10 @@
 在代码中发现但本次未修复的问题，标记 `// TODO(code-review)` 注释：
 
 ```cpp
-// TODO(code-review): Entity 胖实体模式需迁移至 ECS (M-13)
-// TODO(code-review): CMake GLOB_RECURSE 需改为显式源文件列表 (L-07)
+// TODO(code-review): Entity 胖实体模式需迁移至 ECS (entt)
+// TODO(code-review): CMake GLOB_RECURSE 需改为显式源文件列表
+// TODO(code-review): Model.cpp 绕过 VAO 抽象层直接调用 glVertexAttribPointer
+// TODO(code-review): ShaderLibrary/TextureLibrary 单例非线程安全
 ```
 
 ---

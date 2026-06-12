@@ -1,7 +1,7 @@
 # OpenGl-GraphicsEngine 代码质量修复报告
 
-> **执行日期**: 2026-06-10  
-> **修复范围**: 7个高优先级 + 18个中优先级 + 4个低优先级 = 29个问题  
+> **执行日期**: 2026-06-10 ~ 2026-06-12  
+> **修复范围**: 7个高优先级 + 18个中优先级 + 4个低优先级 = 29个问题 + 6个后续修复  
 > **剩余技术债**: 5个低优先级问题（标记为 TODO）
 
 ---
@@ -112,3 +112,40 @@ Bloom 和 PostProcessPipeline 的 FBO 现在使用 `spec.HDR = true`，确保浮
 
 4. **pbr.frag** 不再执行 Tone Mapping 和 Gamma 校正
    - 确保后处理管线的 ToneMappingPass 始终启用
+
+---
+
+## 后续修复 (v2.1+ 跨平台与运行时修复)
+
+### PF-01: Layer 所有权 unique_ptr 迁移 ✅
+- **文件**: `engine/core/Application.h/.cpp`, `engine/core/Layer.h/.cpp`
+- **修复**: `PushLayer`/`PushOverlay` 改为接收 `std::unique_ptr<Layer>`
+- **修复**: LayerStack 自定义迭代器补充 `iterator_traits` 类型别名
+- **影响**: 所有 `new Layer()` 调用改为 `std::make_unique<Layer>()`
+
+### PF-02: 相机输入方式修复 ✅
+- **文件**: `app/SandboxApp.cpp`, `engine/editor/EditorLayer.cpp`
+- **问题**: ImGui 的 GLFW 回调链 (`ImGui_ImplGlfw_InitForOpenGL`) 消费鼠标事件，导致相机旋转/平移事件无法接收
+- **修复**: 鼠标视角旋转/中键平移从事件回调改为轮询模式 (`Input::GetMousePosition()`)
+- **修复**: `HandleInput` 条件从 `!IsViewportFocused()` 改为 `!m_RightMouseHeld && !IsViewportFocused()`
+- **修复**: EditorLayer 的 `HandleKeyEvent` 不再拦截 W/E/R 键
+
+### PF-03: 天空盒渲染修复 ✅
+- **文件**: `app/SandboxApp.cpp`
+- **问题**: `m_SceneFBO->Bind()` 后未执行 `glClear`，深度缓冲跨帧累积导致天空盒被遮挡
+- **修复**: 在 FBO Bind 后添加 `glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)`
+
+### PF-04: 跨平台编译修复 (Linux CI) ✅
+- **文件**: `engine/core/Log.cpp`
+- **修复**: `localtime_s` (Windows) → `#ifdef _WIN32` 条件选择 `localtime_r` (Linux)
+- **修复**: `%03lld` → `%03ld`，Linux 64 位下 `long` 为 64 位，与 `%lld` 不匹配
+- **文件**: `engine/resource/Model.h`, `Model.cpp`
+- **修复**: `SubMesh::Material` 重命名为 `SubMesh::MaterialPtr`，避免与 `Material` 类同名遮蔽 (GCC 报错)
+
+### PF-05: Camera 世界方向修复 ✅
+- **文件**: `engine/renderer/Camera.cpp`
+- **修复**: `UP_WORLD`/`DOWN_WORLD` 使用 `WorldUp` 而非 `Up`，确保世界坐标上升/下降
+
+### PF-06: 测试代码 unique_ptr 适配 ✅
+- **文件**: `tests/TestLayerStack.cpp`
+- **修复**: `new MockLayer()` → `std::make_unique<MockLayer>()` + 原始指针观察模式
