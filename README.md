@@ -460,6 +460,19 @@ Renderer::Clear();                                     // 独立执行清屏
 
 ---
 
+## 文档导航
+
+| 文档 | 目标读者 | 内容 |
+|------|---------|------|
+| **[ONBOARDING.md](ONBOARDING.md)** | 🆕 新员工 | **3 天上手指南**：环境搭建 → 阅读路线 → How-To → 调试技巧 → Cheat Sheet |
+| **[CODE_STRUCTURE_DIAGRAM.md](CODE_STRUCTURE_DIAGRAM.md)** | 全体开发者 | **代码结构梳理图**：拓扑图 / 目录树 / 类关系图 / 渲染数据流 / Shader流程 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构理解 | 完整架构文档、子系统详解、版本历史 |
+| [CODE_REVIEW_SPEC.md](CODE_REVIEW_SPEC.md) | PR Reviewer | Code Review 规范与检查清单 |
+| [FIX_REPORT.md](FIX_REPORT.md) | 历史参考 | 代码质量修复历史 |
+| [todo.md](todo.md) | 规划 | 开发路线图与技术债 |
+
+---
+
 *基于 LearnOpenGL 教学项目改造，C++17，OpenGL 3.3 Core Profile。*
 *代码质量审查 v2.1 — 29 + 6 项问题已修复，详见 [FIX_REPORT.md](FIX_REPORT.md)。*
 *跨平台 CI — GitHub Actions (Ubuntu + Windows)，详见 `.github/workflows/pr-checks.yml`。*
