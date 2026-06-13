@@ -228,8 +228,13 @@ OpenGl-GraphicsEngine/
 ```bash
 # 配置 (需要 MinGW 或 MSVC + CMake)
 mkdir build && cd build
-cmake .. -G "MinGW Makefiles"   # Windows MinGW
-# cmake ..                       # MSVC / Linux / macOS
+
+# Windows MinGW
+cmake .. -G "MinGW Makefiles"
+# Windows MSVC
+cmake ..
+# Linux (需先安装: sudo apt install libglfw3-dev libassimp-dev xorg-dev)
+cmake .. -DCMAKE_BUILD_TYPE=Release
 
 # 编译
 cmake --build . --config Release
@@ -237,6 +242,10 @@ cmake --build . --config Release
 # 运行
 ./Sandbox        # Linux / macOS
 Sandbox.exe      # Windows
+
+# 运行测试
+./Tests          # Linux / macOS
+Tests.exe        # Windows
 ```
 
 ### 构建产物
@@ -269,12 +278,36 @@ Sandbox.exe      # Windows
 
 | 库 | 版本 | 用途 | 集成方式 |
 |----|------|------|----------|
-| GLFW | 3.4 | 窗口 / 输入 / OpenGL 上下文 | 预编译 |
+| GLFW | 3.4 | 窗口 / 输入 / OpenGL 上下文 | 预编译 (Win) / 系统包 (Linux) |
 | GLAD | 4.6 | OpenGL 函数加载 | 源文件编译 |
 | GLM | 0.9.9 | 数学库 (vec3 / mat4 / quat) | header-only |
-| Assimp | 6.x | 3D 模型导入 (.obj/.fbx/.gltf) | 预编译 |
+| Assimp | 6.x | 3D 模型导入 (.obj/.fbx/.gltf) | 预编译 (Win) / 系统包 (Linux) |
 | stb_image | — | 图片加载 (LDR + HDR) | header-only |
 | ImGui | master | 调试 / 编辑器 UI | 源文件编译 |
+
+---
+
+## CI/CD
+
+项目已配置 GitHub Actions 自动化检查 (`.github/workflows/pr-checks.yml`)：
+
+| Job | 平台 | 内容 |
+|-----|------|------|
+| `build-linux` | Ubuntu 22.04 | CMake 配置 + 编译 + 运行测试 |
+| `build-windows` | Windows 2022 | CMake MinGW 配置 + 编译 + 运行测试 |
+| `format-check` | Ubuntu 22.04 | clang-format 格式检查 (仅报告) |
+
+触发条件：向 `dev` 或 `main` 分支提交 PR 时自动运行。
+
+---
+
+## 跨平台支持
+
+| 平台 | 状态 | 说明 |
+|------|------|------|
+| Windows (MinGW/MSVC) | ✅ 完全支持 | 主开发平台 |
+| Linux (GCC) | ✅ CI 验证 | 需要 `libglfw3-dev`、`libassimp-dev`、`xorg-dev` |
+| macOS | ⚠️ 未测试 | 理论支持，需安装 GLFW/Assimp |
 
 ---
 
@@ -379,6 +412,10 @@ Renderer::Clear();                                     // 独立执行清屏
 - [x] 跨平台兼容 — strncpy 替代 strcpy_s，constexpr 替代宏
 - [x] Buffer 拷贝控制 — 禁止拷贝，支持移动，消除 double-free 风险
 - [x] Code Review 规范 — 建立完整检查清单和 PR 审查流程
+- [x] 跨平台 CI — GitHub Actions (Ubuntu + Windows) + PR 自动化检查
+- [x] Linux 编译修复 — localtime_s→localtime_r，%lld→%ld，名称遮蔽修复
+- [x] 相机输入修复 — 轮询模式替代事件回调，解决 ImGui 回调冲突
+- [x] 天空盒渲染修复 — FBO Bind 后 glClear 防止深度缓冲累积
 
 ### 计划中 (v3.0+)
 
@@ -423,5 +460,19 @@ Renderer::Clear();                                     // 独立执行清屏
 
 ---
 
+## 文档导航
+
+| 文档 | 目标读者 | 内容 |
+|------|---------|------|
+| **[ONBOARDING.md](ONBOARDING.md)** | 🆕 新员工 | **3 天上手指南**：环境搭建 → 阅读路线 → How-To → 调试技巧 → Cheat Sheet |
+| **[CODE_STRUCTURE_DIAGRAM.md](CODE_STRUCTURE_DIAGRAM.md)** | 全体开发者 | **代码结构梳理图**：拓扑图 / 目录树 / 类关系图 / 渲染数据流 / Shader流程 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构理解 | 完整架构文档、子系统详解、版本历史 |
+| [CODE_REVIEW_SPEC.md](CODE_REVIEW_SPEC.md) | PR Reviewer | Code Review 规范与检查清单 |
+| [FIX_REPORT.md](FIX_REPORT.md) | 历史参考 | 代码质量修复历史 |
+| [todo.md](todo.md) | 规划 | 开发路线图与技术债 |
+
+---
+
 *基于 LearnOpenGL 教学项目改造，C++17，OpenGL 3.3 Core Profile。*
-*代码质量审查 v2.1 — 29 项问题已修复，详见 [FIX_REPORT.md](FIX_REPORT.md)。*
+*代码质量审查 v2.1 — 29 + 6 项问题已修复，详见 [FIX_REPORT.md](FIX_REPORT.md)。*
+*跨平台 CI — GitHub Actions (Ubuntu + Windows)，详见 `.github/workflows/pr-checks.yml`。*
