@@ -110,6 +110,13 @@ add_executable(Sandbox
 
 target_link_libraries(Sandbox PRIVATE OpenGlEngine)
 
+# ===== CubeEscape 游戏 Demo =====
+add_executable(CubeEscape
+    game/CubeEscape.cpp
+)
+
+target_link_libraries(CubeEscape PRIVATE OpenGlEngine)
+
 # ===== 测试可执行文件 =====
 file(GLOB TEST_SOURCES "tests/*.cpp")
 add_executable(Tests ${TEST_SOURCES})
@@ -154,6 +161,21 @@ if(WIN32 AND ASSIMP_DLL)
     add_custom_command(TARGET Sandbox POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${ASSIMP_DLL}" $<TARGET_FILE_DIR:Sandbox>/
+    )
+endif()
+
+# ===== CubeEscape 资源复制 =====
+add_custom_command(TARGET CubeEscape POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${RESOURCE_DIR} $<TARGET_FILE_DIR:CubeEscape>/resources
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${SHADER_DIR}   $<TARGET_FILE_DIR:CubeEscape>/shader
+)
+
+if(WIN32 AND ASSIMP_DLL)
+    add_custom_command(TARGET CubeEscape POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${ASSIMP_DLL}" $<TARGET_FILE_DIR:CubeEscape>/
     )
 endif()
 
