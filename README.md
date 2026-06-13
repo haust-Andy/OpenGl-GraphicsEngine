@@ -301,178 +301,23 @@ Tests.exe        # Windows
 
 ---
 
-## 跨平台支持
+## 跨平台
 
-| 平台 | 状态 | 说明 |
-|------|------|------|
-| Windows (MinGW/MSVC) | ✅ 完全支持 | 主开发平台 |
-| Linux (GCC) | ✅ CI 验证 | 需要 `libglfw3-dev`、`libassimp-dev`、`xorg-dev` |
-| macOS | ⚠️ 未测试 | 理论支持，需安装 GLFW/Assimp |
-
----
-
-## 代码质量
-
-### Code Review 规范
-
-项目已建立完整的 Code Review 规范（见 [CODE_REVIEW_SPEC.md](CODE_REVIEW_SPEC.md)），核心原则：
-
-**资源管理三原则**：
-- 所有 GL 资源 ID 初始化为 0，析构前检查有效性
-- 禁止拷贝 GL 资源对象，使用移动语义转移所有权
-- 加载失败时传播错误状态，严禁静默失败
-
-**OpenGL 最佳实践**：
-- HDR 场景使用 RGBA16F 格式，LDR 场景使用 RGBA8
-- 后处理管线统一执行 Tone Mapping + Gamma 校正，Shader 输出线性 HDR
-- 使用 GLStateSaver RAII 类保存/恢复 OpenGL 状态
-
-**代码风格**：
-- 统一使用 `CORE_TRACE/INFO/WARN/ERROR` 日志系统，禁止 `std::cout/cerr`
-- 使用 `constexpr` 替代预处理器宏
-- 使用 `std::strncpy` 替代平台专有函数，确保跨平台兼容
-- 异常处理必须记录日志，禁止空 `catch(...)` 吞噬异常
-
-### v2.1 质量改进摘要
-
-> 详见 [FIX_REPORT.md](FIX_REPORT.md)
-
-| 类别 | 修复数 | 关键改进 |
-|------|--------|----------|
-| 🚨 高优先级 | 7/7 | GL ID 初始化、Shader 错误传播、LOD VAO 恢复、HDR 管线修复、类型安全 |
-| ⚠️ 中优先级 | 18/18 | 状态 RAII 保护、智能指针所有权、动态宽高比、Poisson PCF、跨平台 |
-| 💡 低优先级 | 4/9 | constexpr 替代宏、日志统一、格式处理 |
-
-**关键 API 变更**：
-
-```cpp
-// 1. Layer 所有权: 裸指针 → unique_ptr
-// 旧: app.PushLayer(new MyLayer());
-// 新:
-app.PushLayer(std::make_unique<MyLayer>());
-
-// 2. Camera 动态宽高比
-Camera camera;
-camera.ViewportWidth  = windowWidth;   // 新增字段
-camera.ViewportHeight = windowHeight;
-
-// 3. HDR Framebuffer
-FramebufferSpec spec;
-spec.Width  = 1280;
-spec.Height = 720;
-spec.HDR    = true;    // 新增字段，启用 RGBA16F
-
-// 4. Renderer 清屏分离
-Renderer::SetClearColor({0.1f, 0.1f, 0.1f, 1.0f});  // 仅设置颜色
-Renderer::Clear();                                     // 独立执行清屏
-```
-
----
-
-## 扩展路线图
-
-### 已完成 (v2.0)
-
-- [x] 引擎核心基础设施 (Application / Window / Input / Event / Layer / Log / Assert)
-- [x] PBR 渲染管线 (Cook-Torrance + 6 通道纹理)
-- [x] 多光源系统 (Directional / Point / Spot + UBO)
-- [x] 后处理管线 (Bloom + ToneMapping)
-- [x] 场景系统 (Entity-Component + 序列化)
-- [x] 资源管理 (Shader / Texture / Mesh 缓存池)
-- [x] ImGui 编辑器 (Hierarchy / Inspector / Stats / Viewport)
-- [x] CMake 多目标构建
-
-**v2.0 新增：**
-
-- [x] 级联阴影映射 (CSM) — 3 级联 + PCF 软阴影
-- [x] IBL 环境光照 — HDR 加载 + 辐照度卷积 + 预过滤 + BRDF LUT
-- [x] Assimp 模型导入 — .obj/.fbx/.gltf + PBR 纹理自动映射
-- [x] 脚本系统 — ScriptComponent (OnCreate/OnUpdate/OnDestroy)
-- [x] 物理碰撞 — AABB 碰撞 + 弹性响应 + 重力 + Raycast
-- [x] 音频系统 — AudioSource/Listener 组件 + SoLoud 接口 (Stub)
-- [x] 视锥体剔除 — 6 平面提取 + AABB/Sphere 测试
-- [x] 粒子系统 — CPU 粒子 + Billboard + 颜色渐变 + 重力
-- [x] 游戏 UI — SpriteBatch + UIImage/Text/Button + Canvas + 锚点
-- [x] LOD 系统 — 距离/屏幕占比模式 + 4 级 LOD
-- [x] 编辑器增强 — ContentBrowser + Prefab + Play/Stop + Gizmo
-- [x] Prefab 预制体 — 模板创建 / 实例化 / 序列化
-- [x] SSAO 着色器 — 64 采样 + 双边模糊 + 合成
-
-### v2.1 质量改进
-
-- [x] HDR 后处理管线 — RGBA16F Framebuffer，修复 Bloom 亮度提取
-- [x] Shader 错误传播 — 编译/链接失败正确返回 false，不再静默失败
-- [x] GL 资源安全初始化 — 所有 RendererID 初始化为 0，析构安全检查
-- [x] LOD VAO 安全恢复 — 渲染后正确恢复原始 VAO
-- [x] Poisson Disk PCF — 替代固定网格采样，软阴影质量提升
-- [x] GLStateSaver RAII — 后处理管线 OpenGL 状态自动保存/恢复
-- [x] Layer 所有权明确 — unique_ptr 管理生命周期，消除裸指针
-- [x] 动态宽高比 — Camera ViewportWidth/ViewportHeight，消除硬编码 16:9
-- [x] 日志系统统一 — 全面替换 std::cout/cerr 为 CORE_* 宏
-- [x] 跨平台兼容 — strncpy 替代 strcpy_s，constexpr 替代宏
-- [x] Buffer 拷贝控制 — 禁止拷贝，支持移动，消除 double-free 风险
-- [x] Code Review 规范 — 建立完整检查清单和 PR 审查流程
-- [x] 跨平台 CI — GitHub Actions (Ubuntu + Windows) + PR 自动化检查
-- [x] Linux 编译修复 — localtime_s→localtime_r，%lld→%ld，名称遮蔽修复
-- [x] 相机输入修复 — 轮询模式替代事件回调，解决 ImGui 回调冲突
-- [x] 天空盒渲染修复 — FBO Bind 后 glClear 防止深度缓冲累积
-
-### 计划中 (v3.0+)
-
-| 优先级 | 功能 | 说明 |
-|--------|------|------|
-| P0 | 骨骼动画 (GPU Skinning) | Assimp 骨骼导入 + 蒙皮矩阵 UBO + 动画状态机 |
-| P0 | Lua 脚本绑定 | sol3 集成 + C++ API 导出 + 热重载 |
-| P1 | 抗锯齿 (MSAA / FXAA) | FramebufferSpec::Samples 已预留 |
-| P1 | SSAO 集成 | 着色器已就绪，需接入后处理管线 |
-| P1 | ECS 架构迁移 | Entity 胖实体 → 真正的 Entity-Component-System |
-| P1 | VAO 抽象层增强 | 为 PBR 布局提供标准化方法，消除 Model.cpp 绕过抽象层 |
-| P2 | 延迟渲染管线 | G-Buffer + Tile-Based 光照 |
-| P2 | 资源打包 (.pak) | 虚拟文件系统 + AssetHandle |
-| P3 | 多线程渲染 | 渲染线程分离 + 异步资源加载 |
-| P3 | 网络系统 | Client-Server + Entity 同步 |
-
-### 技术债
-
-| 项目 | 说明 | 优先级 |
-|------|------|--------|
-| 单例线程安全 | ShaderLibrary / TextureLibrary 非线程安全，多线程加载需加锁 | 中 |
-| CMake GLOB_RECURSE | 源文件列表不会自动检测新增文件，建议改为显式列举 | 低 |
-| Event.h 文件拆分 | 单文件过大，按事件类型拆分为独立头文件 | 低 |
-| 级联 uniform 缓存 | 级联矩阵 uniform 名称运行时字符串拼接，应预缓存 | 中 |
-
----
-
-## 代码规范
-
-| 类别 | 规则 |
+| 平台 | 状态 |
 |------|------|
-| 文件 / 类 / 方法 | PascalCase |
-| 成员变量 | `m_` 前缀 |
-| 静态变量 | `s_` 前缀 |
-| 指针别名 | `Ref<T>` = shared_ptr, `Scope<T>` = unique_ptr |
-| 日志 | `CORE_TRACE` / `CORE_INFO` / `CORE_WARN` / `CORE_ERROR`（禁止 std::cout/cerr） |
-| 断言 | `CORE_ASSERT` 检查前置条件 |
-| 时间 | 使用 `Timestep` 类型 |
-| GL 资源 | ID 初始化为 0，析构前检查，禁止拷贝 |
-| 编译期常量 | `constexpr` 替代预处理器宏 |
-| 异常处理 | 禁止空 catch(...)，必须记录日志 |
+| Windows (MinGW/MSVC) | ✅ 主开发平台 |
+| Linux (GCC) | ✅ CI 验证 |
+| macOS | ⚠️ 未测试 |
 
 ---
 
-## 文档导航
+## 文档
 
-| 文档 | 目标读者 | 内容 |
-|------|---------|------|
-| **[ONBOARDING.md](ONBOARDING.md)** | 🆕 新员工 | **3 天上手指南**：环境搭建 → 阅读路线 → How-To → 调试技巧 → Cheat Sheet |
-| **[CODE_STRUCTURE_DIAGRAM.md](CODE_STRUCTURE_DIAGRAM.md)** | 全体开发者 | **代码结构梳理图**：拓扑图 / 目录树 / 类关系图 / 渲染数据流 / Shader流程 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构理解 | 完整架构文档、子系统详解、版本历史 |
-| [CODE_REVIEW_SPEC.md](CODE_REVIEW_SPEC.md) | PR Reviewer | Code Review 规范与检查清单 |
-| [FIX_REPORT.md](FIX_REPORT.md) | 历史参考 | 代码质量修复历史 |
-| [todo.md](todo.md) | 规划 | 开发路线图与技术债 |
+| 文档 | 内容 |
+|------|------|
+| **[ONBOARDING.md](ONBOARDING.md)** | ★ 合一开发手册：架构 / 结构图 / 代码规范 / Code Review / 路线图 / 调试 / Cheat Sheet |
 
 ---
 
 *基于 LearnOpenGL 教学项目改造，C++17，OpenGL 3.3 Core Profile。*
-*代码质量审查 v2.1 — 29 + 6 项问题已修复，详见 [FIX_REPORT.md](FIX_REPORT.md)。*
-*跨平台 CI — GitHub Actions (Ubuntu + Windows)，详见 `.github/workflows/pr-checks.yml`。*
+*v2.1 — 35 项代码质量问题已修复，跨平台 CI (Windows)。*
